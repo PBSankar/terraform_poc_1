@@ -20,7 +20,7 @@ phases:
   pre_build:
     commands:
       - echo Terraform pre-build started on `date`
-      - terraform fmt -check=true -diff=true
+      - terraform fmt
       - terraform init -backend=true -input=false
       - terraform validate
 
