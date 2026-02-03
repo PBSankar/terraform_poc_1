@@ -91,21 +91,21 @@ module "rds" {
   depends_on = [module.vpc, module.security, module.kms]
 }
 
-module "vpc_endpoints" {
-  source = "./modules/vpc_endpoints"
+# module "vpc_endpoints" {
+#   source = "./modules/vpc_endpoints"
 
-  vpc_id             = module.vpc.vpc_id
-  region             = var.region
-  private_subnet_ids = module.vpc.private_subnet_ids
-  # route_table_ids                = concat([module.vpc.public_route_table_id], module.vpc.private_route_table_ids)
-  route_table_ids                = module.vpc.private_route_table_ids
-  vpc_endpoint_security_group_id = module.security.vpc_endpoint_security_group_id
-  project_name                   = var.project_name
-  environment                    = var.environment
-  tags = var.common_tags
+#   vpc_id             = module.vpc.vpc_id
+#   region             = var.region
+#   private_subnet_ids = module.vpc.private_subnet_ids
+#   # route_table_ids                = concat([module.vpc.public_route_table_id], module.vpc.private_route_table_ids)
+#   route_table_ids                = module.vpc.private_route_table_ids
+#   vpc_endpoint_security_group_id = module.security.vpc_endpoint_security_group_id
+#   project_name                   = var.project_name
+#   environment                    = var.environment
+#   tags = var.common_tags
 
-  depends_on = [module.vpc, module.security, module.ecs]
-}
+#   depends_on = [module.vpc, module.security, module.ecs]
+# }
 
 
 # CI/CD Module
