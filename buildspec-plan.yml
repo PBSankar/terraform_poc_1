@@ -20,7 +20,6 @@ phases:
   pre_build:
     commands:
       - echo Terraform pre-build started on `date`
-      - cd ${TERRAFORM_DIR:-1.Infra}
       - terraform fmt -check=true -diff=true
       - terraform init -backend=true -input=false
       - terraform validate
