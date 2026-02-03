@@ -1,0 +1,33 @@
+version: 0.2
+
+env:
+  variables:
+    TF_VERSION: "1.5.0"
+    TF_IN_AUTOMATION: "true"
+    TF_INPUT: "false"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo Installing Terraform...
+      - wget -q https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+      - unzip terraform_${TF_VERSION}_linux_amd64.zip
+      - mv terraform /usr/local/bin/
+      - terraform version
+
+  pre_build:
+    commands:
+      - echo Terraform apply started on `date`
+      - cd ${TERRAFORM_DIR:-1.Infra}
+      - terraform init -backend=true -input=false
+
+  build:
+    commands:
+      - echo Applying Terraform plan...
+      - terraform apply -input=false -auto-approve tfplan
+
+  post_build:
+    commands:
+      - echo Terraform deployment completed on `date`
