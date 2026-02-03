@@ -109,17 +109,17 @@ module "rds" {
 
 
 # CI/CD Module
-module "cicd" {
-  source = "./cicd"
+# module "cicd" {
+#   source = "./cicd"
 
-  project_name    = var.project_name
-  environment     = var.environment
-  region          = var.region
-  repository_name = module.ecr.repository_name
-  github_token    = var.github_token
-  cluster_name    = module.ecs.cluster_name
-  service_name    = module.ecs.service_name
-  common_tags     = var.common_tags
+#   project_name    = var.project_name
+#   environment     = var.environment
+#   region          = var.region
+#   repository_name = module.ecr.repository_name
+#   github_token    = var.github_token
+#   cluster_name    = module.ecs.cluster_name
+#   service_name    = module.ecs.service_name
+#   common_tags     = var.common_tags
 
-  depends_on = [module.ecr, module.ecs]
-}
+#   depends_on = [module.ecr, module.ecs]
+# }
