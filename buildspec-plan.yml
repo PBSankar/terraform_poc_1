@@ -5,6 +5,7 @@ env:
     TF_VERSION: "1.5.0"
     TF_IN_AUTOMATION: "true"
     TF_INPUT: "false"
+    github_token: "$GITHUB_TOKEN"
 
 phases:
   install:
@@ -20,6 +21,7 @@ phases:
   pre_build:
     commands:
       - echo Terraform pre-build started on `date`
+      - echo "github_token = \"$GITHUB_TOKEN\"" >> terraform.tfvars
       - terraform fmt
       - terraform init -backend=true -input=false
       - terraform validate
@@ -27,7 +29,7 @@ phases:
   build:
     commands:
       - echo Terraform build started on `date`
-      - terraform plan
+      - terraform plan -var="github_token=$GITHUB_TOKEN"
       - terraform show -no-color tfplan
 
   post_build:
