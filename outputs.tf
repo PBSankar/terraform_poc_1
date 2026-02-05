@@ -44,12 +44,12 @@ output "db_password_secret_arn" {
   value       = module.rds.db_password_secret_arn
 }
 
-output "codebuild_project_name" {
-  description = "Name of the CodeBuild project"
-  value       = module.cicd.codebuild_project_name
-}
+# output "codebuild_project_name" {
+#   description = "Name of the CodeBuild project"
+#   value       = module.cicd.codebuild_project_name
+# }
 
-output "codepipeline_name" {
-  description = "Name of the CodePipeline"
-  value       = module.cicd.codepipeline_name
-}
+# output "codepipeline_name" {
+#   description = "Name of the CodePipeline"
+#   value       = module.cicd.codepipeline_name
+# }
