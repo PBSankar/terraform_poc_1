@@ -29,8 +29,9 @@ phases:
   build:
     commands:
       - echo Terraform build started on `date`
-      - terraform plan -var="github_token=$GITHUB_TOKEN"
+      - terraform plan -var="github_token=$GITHUB_TOKEN" -out=tfplan -input=false
       - terraform show -no-color tfplan
+      - echo "Plan complete"
 
   post_build:
     commands:
