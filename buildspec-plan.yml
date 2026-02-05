@@ -43,4 +43,4 @@ artifacts:
     - tfplan
     - '*.tf'
     - '*.tfvars'
-  base-directory: ${TERRAFORM_DIR:-1.Infra}
+  # base-directory: ${TERRAFORM_DIR:-1.Infra}
