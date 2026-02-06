@@ -5,6 +5,7 @@ env:
     TF_VERSION: "1.5.0"
     TF_IN_AUTOMATION: "true"
     TF_INPUT: "false"
+    TF_VAR_github_token: "$GITHUB_TOKEN"
 
 phases:
   install:
@@ -20,7 +21,7 @@ phases:
   pre_build:
     commands:
       - echo Terraform apply started on `date`
-      - cd ${TERRAFORM_DIR:-1.Infra}
+      - echo "github_token = \"$GITHUB_TOKEN\"" >> terraform.tfvars
       - terraform init -backend=true -input=false
 
   build:
