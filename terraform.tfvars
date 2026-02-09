@@ -67,4 +67,4 @@ alert_email_address = "bhavanisankar.pendem@trianz.com"
 
 github_repo_url         = "https://github.com/PBSankar/terraform_poc_1.git"
 github_branch           = "main"
-github_token = "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"
+github_token = ""
