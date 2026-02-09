@@ -25,6 +25,20 @@ resource "aws_internet_gateway" "main" {
 locals {
   subnet_offset = var.public_subnet_count
   az_count      = length(data.aws_availability_zones.available.names)
+  
+  # Calculate total subnets needed
+  total_subnets = var.public_subnet_count + var.private_subnet_count
+  
+  # Extract VPC CIDR prefix (e.g., 16 from /16)
+  vpc_cidr_prefix = tonumber(split("/", var.vpc_cidr)[1])
+  
+  # Calculate newbits needed to accommodate all subnets
+  # Formula: newbits = ceil(log2(total_subnets))
+  newbits = ceil(log(local.total_subnets, 2))
+  
+  # Ensure subnet CIDR doesn't exceed /28 (minimum 16 IPs)
+  # and doesn't go below VPC CIDR prefix
+  calculated_newbits = min(max(local.newbits, 4), 28 - local.vpc_cidr_prefix)
 }
 
 resource "null_resource" "nat_az_check" {
@@ -39,7 +53,7 @@ resource "aws_subnet" "public" {
   count = var.public_subnet_count
 
   vpc_id     = aws_vpc.main.id
-  cidr_block = cidrsubnet(var.vpc_cidr, 8, count.index)
+  cidr_block = length(var.public_subnet_cidrs) > 0 ? var.public_subnet_cidrs[count.index] : cidrsubnet(var.vpc_cidr, local.calculated_newbits, count.index)
   availability_zone = data.aws_availability_zones.available.names[
     count.index % length(data.aws_availability_zones.available.names)
   ]
@@ -56,7 +70,7 @@ resource "aws_subnet" "private" {
   count = var.private_subnet_count
 
   vpc_id     = aws_vpc.main.id
-  cidr_block = cidrsubnet(var.vpc_cidr, 8, count.index + local.subnet_offset)
+  cidr_block = length(var.private_subnet_cidrs) > 0 ? var.private_subnet_cidrs[count.index] : cidrsubnet(var.vpc_cidr, local.calculated_newbits, count.index + local.subnet_offset)
 
   availability_zone = data.aws_availability_zones.available.names[
     count.index % length(data.aws_availability_zones.available.names)
@@ -164,5 +178,3 @@ resource "aws_route_table_association" "private" {
 
   depends_on = [aws_route_table.private]
 }
-
-

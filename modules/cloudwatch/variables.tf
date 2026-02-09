@@ -45,3 +45,14 @@ variable "alarm_actions" {
   type        = list(string)
   default     = []
 }
+
+variable "kms_key_arn" {
+  description = "KMS key ARN for log group encryption"
+  type        = string
+}
+
+variable "waf_web_acl_name" {
+  description = "Name of the WAF Web ACL"
+  type        = string
+  default     = ""
+}

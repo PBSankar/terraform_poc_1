@@ -17,7 +17,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "codepipeline_arti
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      # kms_master_key_id = aws_kms_key.cicd_secrets.arn
+      kms_master_key_id = var.kms_key_arn
     }
   }
 }
@@ -56,6 +58,7 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid    = "S3ArtifactAccess"
         Effect = "Allow"
         Action = [
           "s3:GetBucketVersioning",
@@ -69,45 +72,72 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
         ]
       },
       {
+        Sid    = "CodeBuildAccess"
         Effect = "Allow"
         Action = [
           "codebuild:BatchGetBuilds",
           "codebuild:StartBuild"
         ]
-        Resource = "*"
+        Resource = aws_codebuild_project.docker_build.arn
       },
       {
+        Sid    = "ECSDeployAccess"
         Effect = "Allow"
         Action = [
           "ecs:DescribeServices",
           "ecs:DescribeTaskDefinition",
-          "ecs:DescribeTasks",
-          "ecs:ListTasks",
           "ecs:RegisterTaskDefinition",
-          "ecs:UpdateService",
-          "ecs:DescribeClusters",
-          "ecs:CreateService",
-          "ecs:DeleteService",
-          "ecs:DescribeContainerInstances",
-          "ecs:ListContainerInstances"
+          "ecs:UpdateService"
         ]
-        Resource = "*"
+        Resource = [
+          "arn:aws:ecs:${var.region}:*:service/${var.project_name}-*",
+          "arn:aws:ecs:${var.region}:*:task-definition/${var.project_name}-*:*"
+        ]
       },
       {
+        Sid    = "IAMPassRole"
         Effect = "Allow"
         Action = [
           "iam:PassRole"
         ]
-        Resource = "*"
+        Resource = [
+          "arn:aws:iam::*:role/${var.project_name}-*-ecsTaskExecutionRole",
+          "arn:aws:iam::*:role/${var.project_name}-*-ecsTaskRole"
+        ]
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
       },
       {
+        Sid    = "CloudWatchLogs"
         Effect = "Allow"
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+        Resource = "arn:aws:logs:${var.region}:*:log-group:/aws/codepipeline/${var.project_name}-*:*"
+      },
+      {
+        Sid    = "SecretsManagerAccess"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = aws_secretsmanager_secret.github_token.arn
+      },
+      {
+        Sid    = "KMSAccess"
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey"
+        ]
+        # Resource = aws_kms_key.cicd_secrets.arn
+        Resource = var.kms_key_arn
       }
     ]
   })
@@ -138,7 +168,7 @@ resource "aws_codepipeline" "ecs_pipeline" {
         Owner      = "PBSankar"
         Repo       = "apache_docker"
         Branch     = "main"
-        OAuthToken = var.github_token
+        OAuthToken = data.aws_secretsmanager_secret_version.github_token.secret_string
       }
     }
   }

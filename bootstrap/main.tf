@@ -8,13 +8,13 @@ resource "aws_s3_bucket" "terraform_state" {
   # Prevent accidental bucket deletion and recreation
   lifecycle {
     prevent_destroy = true
-    ignore_changes = [bucket]
+    ignore_changes  = [bucket]
   }
 
   tags = merge(var.common_tags, {
     Name        = "Terraform State Bucket"
-    Environment = "${var.environment}"
-    Project     = "${var.project_name}"
+    Environment = var.environment
+    Project     = var.project_name
   })
 }
 

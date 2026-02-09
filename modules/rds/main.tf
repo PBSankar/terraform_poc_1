@@ -7,16 +7,17 @@
 
 # Generate random DB password
 resource "random_password" "db_password" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 # Store DB username in Secrets Manager
 resource "aws_secretsmanager_secret" "db_username" {
-  name                    = "${var.project_name}-${var.environment}-db-username"
+  name                    = "${var.project_name}-${var.environment}-db-user"
   description             = "Database username"
   kms_key_id              = var.kms_key_arn
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0
   
   tags = merge(var.tags, {
     Name = "${var.project_name}-${var.environment}-db-username"
@@ -31,10 +32,10 @@ resource "aws_secretsmanager_secret_version" "db_username" {
 
 # Store DB password in Secrets Manager
 resource "aws_secretsmanager_secret" "db_password" {
-  name                    = "${var.project_name}-${var.environment}-db-password"
+  name                    = "${var.project_name}-${var.environment}-db-passwd"
   description             = "Database password"
   kms_key_id              = var.kms_key_arn
-  recovery_window_in_days = 7
+  recovery_window_in_days = 0
   
   tags = merge(var.tags, {
     Name = "${var.project_name}-${var.environment}-db-password"
@@ -74,6 +75,8 @@ resource "aws_rds_cluster" "main" {
   storage_encrypted = true
   kms_key_id        = var.kms_key_arn
   
+  enabled_cloudwatch_logs_exports = ["audit", "error", "general", "slowquery"]
+  
   skip_final_snapshot = true
   
   tags = merge(var.tags, {
@@ -89,8 +92,94 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   instance_class     = var.instance_class
   engine             = aws_rds_cluster.main.engine
   engine_version     = aws_rds_cluster.main.engine_version
+  promotion_tier     = count.index
   
   tags = merge(var.tags, {
     Name = "${var.project_name}-${var.environment}-aurora-instance-${count.index + 1}"
+    Role = count.index == 0 ? "writer" : "reader"
+  })
+}
+
+# RDS Proxy for Connection Pooling
+resource "aws_db_proxy" "main" {
+  name                   = "${var.project_name}-${var.environment}-rds-proxy"
+  engine_family          = "MYSQL"
+  auth {
+    auth_scheme = "SECRETS"
+    iam_auth    = "DISABLED"
+    secret_arn  = aws_secretsmanager_secret.db_password.arn
+  }
+  role_arn               = aws_iam_role.rds_proxy.arn
+  vpc_subnet_ids         = var.private_subnet_ids
+  require_tls            = true
+  
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-rds-proxy"
+  })
+}
+
+resource "aws_db_proxy_default_target_group" "main" {
+  db_proxy_name = aws_db_proxy.main.name
+
+  connection_pool_config {
+    connection_borrow_timeout    = 120
+    max_connections_percent      = 100
+    max_idle_connections_percent = 50
+  }
+}
+
+resource "aws_db_proxy_target" "main" {
+  db_proxy_name         = aws_db_proxy.main.name
+  target_group_name     = aws_db_proxy_default_target_group.main.name
+  db_cluster_identifier = aws_rds_cluster.main.id
+}
+
+# IAM Role for RDS Proxy
+resource "aws_iam_role" "rds_proxy" {
+  name = "${var.project_name}-${var.environment}-rds-proxy-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "rds.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-rds-proxy-role"
+  })
+}
+
+resource "aws_iam_role_policy" "rds_proxy" {
+  name = "${var.project_name}-${var.environment}-rds-proxy-policy"
+  role = aws_iam_role.rds_proxy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          aws_secretsmanager_secret.db_username.arn,
+          aws_secretsmanager_secret.db_password.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
+        ]
+        Resource = var.kms_key_arn
+      }
+    ]
   })
 }

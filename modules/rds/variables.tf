@@ -1,7 +1,7 @@
-variable "vpc_id" {
-  description = "ID of the VPC"
-  type        = string
-}
+# variable "vpc_id" {
+#   description = "ID of the VPC"
+#   type        = string
+# }
 
 variable "private_subnet_ids" {
   description = "IDs of the private subnets"
@@ -55,5 +55,5 @@ variable "tags" {
 variable "db_username" {
   description = "RDS database master username"
   type        = string
-  default     = "adminuser"
+  default     = "pg_admin"
 }

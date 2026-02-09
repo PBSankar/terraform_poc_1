@@ -42,12 +42,12 @@ resource "aws_kms_key" "main" {
   })
   
   tags = merge(var.tags, {
-    Name = "main-kms-key"
+    Name = "${var.project_name}-${var.environment}-main-kms-key"
   })
 }
 
 # KMS Key Alias
 resource "aws_kms_alias" "main" {
-  name          = "alias/pge-main-kms-key"
+  name          = "alias/${var.project_name}-${var.environment}-main-kms-key"
   target_key_id = aws_kms_key.main.key_id
 }

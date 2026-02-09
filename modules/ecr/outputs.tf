@@ -13,7 +13,17 @@ output "repository_arn" {
   value       = aws_ecr_repository.main.arn
 }
 
-output "ecs_task_execution_role_arn" {
-  description = "ECS task execution role ARN"
-  value       = aws_iam_role.ecs_task_execution.arn
+output "image_version" {
+  description = "Current image version pushed to ECR"
+  value       = local.image_version
+}
+
+output "image_uri_versioned" {
+  description = "ECR image URI with version tag"
+  value       = "${aws_ecr_repository.main.repository_url}:${local.image_version}"
+}
+
+output "image_uri_latest" {
+  description = "ECR image URI with latest tag"
+  value       = "${aws_ecr_repository.main.repository_url}:latest"
 }

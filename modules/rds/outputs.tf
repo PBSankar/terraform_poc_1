@@ -37,3 +37,13 @@ output "db_password_secret_arn" {
   description = "ARN of the DB password secret"
   value       = aws_secretsmanager_secret.db_password.arn
 }
+
+output "rds_proxy_endpoint" {
+  description = "RDS Proxy endpoint for connection pooling"
+  value       = aws_db_proxy.main.endpoint
+}
+
+output "rds_proxy_arn" {
+  description = "ARN of the RDS Proxy"
+  value       = aws_db_proxy.main.arn
+}

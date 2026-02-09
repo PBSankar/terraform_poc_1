@@ -26,15 +26,20 @@ resource "aws_iam_role_policy" "codebuild_policy" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid    = "CloudWatchLogs"
         Effect = "Allow"
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          "arn:aws:logs:${var.region}:*:log-group:/aws/codebuild/${var.project_name}*",
+          "arn:aws:logs:${var.region}:*:log-group:/aws/codebuild/${var.project_name}*:*"
+        ]
       },
       {
+        Sid    = "S3ArtifactAccess"
         Effect = "Allow"
         Action = [
           "s3:GetBucketVersioning",
@@ -43,40 +48,72 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "s3:PutObject"
         ]
         Resource = [
-          "arn:aws:s3:::*-codepipeline-artifacts-*",
-          "arn:aws:s3:::*-codepipeline-artifacts-*/*"
+          "arn:aws:s3:::${var.project_name}-codepipeline-artifacts-*",
+          "arn:aws:s3:::${var.project_name}-codepipeline-artifacts-*/*"
         ]
       },
       {
+        Sid    = "ECRAccess"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ECRRepositoryAccess"
         Effect = "Allow"
         Action = [
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchGetImage",
-          "ecr:GetAuthorizationToken",
           "ecr:PutImage",
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload"
         ]
-        Resource = "*"
+        Resource = "arn:aws:ecr:${var.region}:*:repository/${var.project_name}-*"
       },
       {
+        Sid    = "KMSAccess"
         Effect = "Allow"
         Action = [
-          "ecs:UpdateService",
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "arn:aws:kms:${var.region}:*:key/*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = [
+              "s3.${var.region}.amazonaws.com"
+            ]
+          }
+        }
+      },
+      {
+        Sid    = "ECSAccess"
+        Effect = "Allow"
+        Action = [
           "ecs:DescribeServices",
           "ecs:DescribeTaskDefinition",
-          "ecs:RegisterTaskDefinition"
+          "ecs:DescribeTasks",
+          "ecs:ListTasks",
+          "ecs:RegisterTaskDefinition",
+          "ecs:UpdateService"
         ]
         Resource = "*"
       },
       {
+        Sid    = "IAMPassRole"
         Effect = "Allow"
-        Action = [
-          "iam:PassRole"
-        ]
+        Action = "iam:PassRole"
         Resource = "*"
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
       }
     ]
   })
@@ -84,20 +121,27 @@ resource "aws_iam_role_policy" "codebuild_policy" {
 
 # CodeBuild Project
 resource "aws_codebuild_project" "docker_build" {
-  name          = "${var.project_name}-docker-build"
-  description   = "Build Docker image from GitHub and push to ECR"
-  service_role  = aws_iam_role.codebuild_role.arn
+  name         = "${var.project_name}-docker-build"
+  description  = "Build Docker image from GitHub and push to ECR"
+  service_role = aws_iam_role.codebuild_role.arn
 
   artifacts {
     type = "NO_ARTIFACTS"
   }
 
+  logs_config {
+    cloudwatch_logs {
+      group_name  = aws_cloudwatch_log_group.codebuild.name
+      stream_name = "build-log"
+    }
+  }
+
   environment {
     compute_type                = "BUILD_GENERAL1_MEDIUM"
-    image                      = "aws/codebuild/amazonlinux2-x86_64-standard:5.0"
-    type                       = "LINUX_CONTAINER"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:5.0"
+    type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode            = true
+    privileged_mode             = true
 
     environment_variable {
       name  = "AWS_DEFAULT_REGION"
@@ -137,6 +181,13 @@ resource "aws_codebuild_project" "docker_build" {
 
     buildspec = "buildspec.yml"
   }
+
+  tags = var.common_tags
+}
+
+resource "aws_cloudwatch_log_group" "codebuild" {
+  name              = "/aws/codebuild/${var.project_name}"
+  retention_in_days = 14
 
   tags = var.common_tags
 }

@@ -40,3 +40,10 @@ variable "service_name" {
   type        = string
   default     = ""
 }
+
+variable "kms_key_arn" {
+  description = "ARN of the KMS key for encrypting secrets"
+  type        = string
+  default     = ""
+
+}

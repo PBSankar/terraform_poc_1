@@ -24,3 +24,15 @@ variable "repository_name" {
   type        = string
   default     = ""
 }
+
+variable "image_version" {
+  description = "Image version tag (e.g., 1.0, 1.02). If not provided, will auto-increment from latest version"
+  type        = string
+  default     = ""
+}
+
+variable "source_image" {
+  description = "Source Docker image to push to ECR"
+  type        = string
+  default     = "nginx:latest"
+}

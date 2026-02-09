@@ -34,6 +34,11 @@ output "rds_cluster_reader_endpoint" {
   value       = module.rds.cluster_reader_endpoint
 }
 
+output "rds_proxy_endpoint" {
+  description = "RDS Proxy endpoint for connection pooling"
+  value       = module.rds.rds_proxy_endpoint
+}
+
 output "db_username_secret_arn" {
   description = "ARN of the DB username secret in KMS"
   value       = module.rds.db_username_secret_arn
@@ -53,3 +58,23 @@ output "db_password_secret_arn" {
 #   description = "Name of the CodePipeline"
 #   value       = module.cicd.codepipeline_name
 # }
+
+output "waf_web_acl_id" {
+  description = "ID of the WAF Web ACL"
+  value       = module.waf.web_acl_id
+}
+
+output "waf_web_acl_arn" {
+  description = "ARN of the WAF Web ACL"
+  value       = module.waf.web_acl_arn
+}
+
+output "budget_name" {
+  description = "Name of the AWS Budget"
+  value       = module.cost_monitoring.budget_name
+}
+
+output "cost_anomaly_monitor_arn" {
+  description = "ARN of the Cost Anomaly Monitor"
+  value       = module.cost_monitoring.anomaly_monitor_arn
+}
